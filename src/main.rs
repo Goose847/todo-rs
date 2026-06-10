@@ -1,7 +1,13 @@
+use std::error::Error;
+use std::fs::File;
+use std::io::Read;
+use std::io::{BufReader, BufWriter};
+use std::path::Path;
+
 use clap::Parser;
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
-//use serde_json;
+use serde_json;
 
 // Command Line Interface
 #[derive(Parser, Debug)]
@@ -27,6 +33,7 @@ struct Task {
     done: bool,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
 struct TaskList {
     list: Vec<Task>,
     next_id: usize,
@@ -62,6 +69,19 @@ impl TaskList {
             println!("{0} - {1}: {2}", task.id, task.text, check);
         }
     }
+}
+
+// IO
+fn load(path: &Path) -> Result<TaskList, Box<dyn Error>> {
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    let tasks = serde_json::from_reader(reader)?;
+
+    Ok(tasks)
+}
+fn save(path: &Path, tasks: &TaskList) -> Result<(), Box<dyn Error>> {
+    todo!();
 }
 
 // Orchastration and Wiring
