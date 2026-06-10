@@ -153,13 +153,14 @@ fn run() -> Result<(), AppError> {
     let default_file: &Path = Path::new("/Users/connorgoosen/.todo_rs.json");
     let mut list: TaskList = load(default_file)?;
 
-    let _ = match cli.command {
+    match cli.command {
         Commands::Add { text } => list.add(text),
         Commands::Done { id } => list.mark_done(id),
         Commands::Remove { id } => list.remove_task(id),
         Commands::List => list.display_tasks(),
-    };
+    }?;
 
-    let _ = save(default_file, &list);
+    save(default_file, &list)?;
+
     Ok(())
 }
