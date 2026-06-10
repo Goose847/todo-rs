@@ -1,9 +1,12 @@
+use std::env::home_dir;
 use std::fmt;
 use std::io;
 use std::path::Path;
+use std::path::PathBuf;
 
 use clap::Parser;
 use clap::Subcommand;
+use dirs;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
@@ -145,6 +148,10 @@ fn main() {
         eprint!("Error: {e}");
         std::process::exit(1);
     }
+}
+
+fn get_dir() -> Option<PathBuf> {
+    home_dir().join(".todo_rs.json")
 }
 
 fn run() -> Result<(), AppError> {
