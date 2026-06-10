@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt;
+use std::io;
 use std::path::Path;
 
 use clap::Parser;
@@ -108,14 +109,20 @@ impl TaskList {
 
 // IO
 fn load(path: &Path) -> Result<TaskList, AppError> {
-    let json_string = std::fs::read_to_string(path)?;
-
-    if json_string.is_empty() {
-        return Ok(TaskList::new());
+    match std::fs::read_to_string(path) {
+        Ok(contents) => {
+            if contents.is_empty() {
+                return Ok(TaskList::new());
+            } else {
+                return Ok(serde_json::from_str(&contents)?);
+            }
+        }
+        Err(e) if e.kind() == io::ErrorKind::NotFound => {
+            let _ = std::fs::File::create(path)?;
+            return Ok(TaskList::new());
+        }
+        Err(e) => return Err(AppError::Io(e)),
     }
-    let tasks = serde_json::from_str(&json_string)?;
-
-    Ok(tasks)
 }
 fn save(path: &Path, tasks: &TaskList) -> Result<(), AppError> {
     let contents: String = serde_json::to_string(tasks)?;
