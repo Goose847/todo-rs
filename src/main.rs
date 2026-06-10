@@ -68,6 +68,13 @@ struct TaskList {
 }
 
 impl TaskList {
+    pub fn new() -> TaskList {
+        TaskList {
+            list: Vec::new(),
+            next_id: 0,
+        }
+    }
+
     pub fn add(&mut self, text: String) {
         self.list.push(Task {
             id: self.next_id,
@@ -100,18 +107,18 @@ impl TaskList {
 }
 
 // IO
-fn load(path: &Path) -> Result<TaskList, Box<dyn Error>> {
-    let json_string = std::fs::read_to_string(path).unwrap();
+fn load(path: &Path) -> Result<TaskList, AppError> {
+    let json_string = std::fs::read_to_string(path)?;
 
     if json_string.is_empty() {
-        return TaskList;
+        return Ok(TaskList::new());
     }
     let tasks = serde_json::from_str(&json_string)?;
 
     Ok(tasks)
 }
-fn save(path: &Path, tasks: &TaskList) -> Result<(), Box<dyn Error>> {
-    let contents: String = serde_json::to_string(tasks).unwrap();
+fn save(path: &Path, tasks: &TaskList) -> Result<(), AppError> {
+    let contents: String = serde_json::to_string(tasks)?;
     std::fs::write(path, contents).unwrap();
     Ok(())
 }
