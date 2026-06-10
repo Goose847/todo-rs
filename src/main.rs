@@ -1,5 +1,5 @@
 use std::error::Error;
-use std::fs::File;
+use std::fs::{self, File};
 use std::io::Read;
 use std::io::{BufReader, BufWriter};
 use std::path::Path;
@@ -81,7 +81,9 @@ fn load(path: &Path) -> Result<TaskList, Box<dyn Error>> {
     Ok(tasks)
 }
 fn save(path: &Path, tasks: &TaskList) -> Result<(), Box<dyn Error>> {
-    todo!();
+    let contents: String = serde_json::to_string(tasks).unwrap();
+    fs::write(path, contents);
+    Ok(())
 }
 
 // Orchastration and Wiring
