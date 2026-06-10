@@ -1,15 +1,11 @@
 use std::error::Error;
-use std::fs::{self, File};
-use std::io::Read;
-use std::io::{BufReader, BufWriter};
+use std::fmt;
 use std::path::Path;
 
 use clap::Parser;
 use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use serde_json;
-
-const default_file: &str = "/Users/connor/.todo_rs.json";
 
 // Command Line Interface
 #[derive(Parser, Debug)]
@@ -25,6 +21,36 @@ enum Commands {
     Remove { id: usize },
     Done { id: usize },
     List,
+}
+
+// Error handling
+#[derive(Debug)]
+enum AppError {
+    Io(std::io::Error),
+    Json(serde_json::Error),
+    NotFound(usize),
+}
+
+impl fmt::Display for AppError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            AppError::Io(e) => write!(f, "IO error: {}", e),
+            AppError::Json(e) => write!(f, "Json error: {}", e),
+            AppError::NotFound(id) => write!(f, "{} not found", id),
+        }
+    }
+}
+
+impl From<std::io::Error> for AppError {
+    fn from(e: std::io::Error) -> Self {
+        AppError::Io(e)
+    }
+}
+
+impl From<serde_json::Error> for AppError {
+    fn from(e: serde_json::Error) -> Self {
+        AppError::Json(e)
+    }
 }
 
 // Data models
@@ -75,16 +101,18 @@ impl TaskList {
 
 // IO
 fn load(path: &Path) -> Result<TaskList, Box<dyn Error>> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
+    let json_string = std::fs::read_to_string(path).unwrap();
 
-    let tasks = serde_json::from_reader(reader)?;
+    if json_string.is_empty() {
+        return TaskList;
+    }
+    let tasks = serde_json::from_str(&json_string)?;
 
     Ok(tasks)
 }
 fn save(path: &Path, tasks: &TaskList) -> Result<(), Box<dyn Error>> {
     let contents: String = serde_json::to_string(tasks).unwrap();
-    fs::write(path, contents).unwrap();
+    std::fs::write(path, contents).unwrap();
     Ok(())
 }
 
@@ -94,5 +122,17 @@ fn main() {
 }
 
 fn run() {
-    let _cli = Cli::parse();
+    let cli = Cli::parse();
+
+    let default_file: &Path = Path::new("/Users/connorgoosen/.todo_rs.json");
+    let mut list: TaskList = load(default_file).unwrap();
+
+    match cli.command {
+        Commands::Add { text } => list.add(text),
+        Commands::Done { id } => list.mark_done(id),
+        Commands::Remove { id } => list.remove_task(id),
+        Commands::List => list.display_tasks(),
+    };
+
+    let _ = save(default_file, &list);
 }
