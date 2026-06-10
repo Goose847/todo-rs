@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt;
 use std::io;
 use std::path::Path;
@@ -76,27 +75,35 @@ impl TaskList {
         }
     }
 
-    pub fn add(&mut self, text: String) {
+    pub fn add(&mut self, text: String) -> Result<(), AppError> {
         self.list.push(Task {
             id: self.next_id,
             text,
             done: false,
         });
         self.next_id += 1;
+        Ok(())
     }
 
-    pub fn mark_done(&mut self, id: usize) {
-        let task: Option<&mut Task> = self.list.iter_mut().find(|task| task.id == id);
-        task.unwrap().done = true;
-    }
-
-    pub fn remove_task(&mut self, id: usize) {
-        if let Some(index) = self.list.iter().position(|task| task.id == id) {
-            self.list.remove(index);
+    pub fn mark_done(&mut self, id: usize) -> Result<(), AppError> {
+        if let Some(task) = self.list.iter_mut().find(|task| task.id == id) {
+            task.done = true;
+            Ok(())
+        } else {
+            Err(AppError::NotFound(id))
         }
     }
 
-    pub fn display_tasks(&self) {
+    pub fn remove_task(&mut self, id: usize) -> Result<(), AppError> {
+        if let Some(index) = self.list.iter().position(|task| task.id == id) {
+            self.list.remove(index);
+            Ok(())
+        } else {
+            Err(AppError::NotFound(id))
+        }
+    }
+
+    pub fn display_tasks(&self) -> Result<(), AppError> {
         for task in &self.list {
             let mut check = "[]";
             if task.done {
@@ -104,6 +111,7 @@ impl TaskList {
             }
             println!("{0} - {1}: {2}", task.id, task.text, check);
         }
+        Ok(())
     }
 }
 
@@ -124,24 +132,28 @@ fn load(path: &Path) -> Result<TaskList, AppError> {
         Err(e) => return Err(AppError::Io(e)),
     }
 }
+
 fn save(path: &Path, tasks: &TaskList) -> Result<(), AppError> {
     let contents: String = serde_json::to_string(tasks)?;
-    std::fs::write(path, contents).unwrap();
+    std::fs::write(path, contents)?;
     Ok(())
 }
 
 // Orchastration and Wiring
 fn main() {
-    run()
+    if let Err(e) = run() {
+        eprint!("Error: {e}");
+        std::process::exit(1);
+    }
 }
 
-fn run() {
+fn run() -> Result<(), AppError> {
     let cli = Cli::parse();
 
     let default_file: &Path = Path::new("/Users/connorgoosen/.todo_rs.json");
-    let mut list: TaskList = load(default_file).unwrap();
+    let mut list: TaskList = load(default_file)?;
 
-    match cli.command {
+    let _ = match cli.command {
         Commands::Add { text } => list.add(text),
         Commands::Done { id } => list.mark_done(id),
         Commands::Remove { id } => list.remove_task(id),
@@ -149,4 +161,5 @@ fn run() {
     };
 
     let _ = save(default_file, &list);
+    Ok(())
 }
