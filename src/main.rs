@@ -9,6 +9,8 @@ use clap::Subcommand;
 use serde::{Deserialize, Serialize};
 use serde_json;
 
+const default_file: &str = "/Users/connor/.todo_rs.json";
+
 // Command Line Interface
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -82,7 +84,7 @@ fn load(path: &Path) -> Result<TaskList, Box<dyn Error>> {
 }
 fn save(path: &Path, tasks: &TaskList) -> Result<(), Box<dyn Error>> {
     let contents: String = serde_json::to_string(tasks).unwrap();
-    fs::write(path, contents);
+    fs::write(path, contents).unwrap();
     Ok(())
 }
 
